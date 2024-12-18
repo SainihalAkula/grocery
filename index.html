@@ -68,6 +68,28 @@
 			input[type='checkbox']:hover {
 				transform: scale(1.3);
 			}
+			/* Fancy button styling */
+			.done-button {
+				display: block;
+				width: 200px;
+				height: 50px;
+				margin: 30px auto;
+				background-color: #28a745;
+				color: white;
+				border: none;
+				border-radius: 25px;
+				font-size: 18px;
+				cursor: pointer;
+				transition: transform 0.3s ease, background-color 0.3s ease;
+			}
+			.done-button:hover {
+				transform: scale(1.1);
+				background-color: #218838;
+			}
+			.done-button:active {
+				transform: scale(1);
+			}
+
 			@keyframes fadeIn {
 				from {
 					opacity: 0;
@@ -108,6 +130,9 @@
 			</tbody>
 		</table>
 
+		<!-- "Done" Button -->
+		<button class="done-button" onclick="clearLocalStorage()">Done</button>
+
 		<script>
 			const groceryItems = [
 				{ name: 'Paneer', required: 6 },
@@ -120,8 +145,20 @@
 			];
 
 			function askQuantities() {
-				groceryItems.forEach((item) => {
+				groceryItems.forEach((item, index) => {
 					let quantityAtHome;
+
+					// Check if data exists in local storage
+					const savedData =
+						JSON.parse(localStorage.getItem('groceryData')) || {};
+					if (
+						savedData[index] &&
+						savedData[index].quantityAtHome !== undefined
+					) {
+						item.quantityAtHome = savedData[index].quantityAtHome;
+						return;
+					}
+
 					do {
 						quantityAtHome = prompt(
 							`Enter the quantity of ${item.name} you have at home (required: ${item.required}):`,
@@ -144,6 +181,12 @@
 
 					item.quantityAtHome = parseInt(quantityAtHome);
 				});
+
+				// Save data to local storage
+				const savedData = groceryItems.map((item) => ({
+					quantityAtHome: item.quantityAtHome,
+				}));
+				localStorage.setItem('groceryData', JSON.stringify(savedData));
 			}
 
 			function loadTable() {
@@ -163,17 +206,42 @@
                     <td><input type="checkbox" id="checkbox-${index}" onchange="toggleBought(${index})"></td>
                 `;
 					tableBody.appendChild(row);
+
+					// Apply checked status from local storage
+					const savedData =
+						JSON.parse(localStorage.getItem('groceryData')) || {};
+					if (savedData[index] && savedData[index].bought) {
+						document.getElementById(`checkbox-${index}`).checked = true;
+						toggleBought(index);
+					}
 				});
 			}
 
 			function toggleBought(index) {
 				const row = document.getElementById(`row-${index}`);
 				const checkbox = document.getElementById(`checkbox-${index}`);
+				const savedData = JSON.parse(localStorage.getItem('groceryData')) || {};
+
 				if (checkbox.checked) {
 					row.classList.add('bought');
+					savedData[index] = savedData[index] || {};
+					savedData[index].bought = true;
 				} else {
 					row.classList.remove('bought');
+					if (savedData[index]) {
+						savedData[index].bought = false;
+					}
 				}
+
+				// Save checkbox state to local storage
+				localStorage.setItem('groceryData', JSON.stringify(savedData));
+			}
+
+			function clearLocalStorage() {
+				// Clear all data from localStorage
+				localStorage.removeItem('groceryData');
+				// Reload the page to reflect the cleared data
+				location.reload();
 			}
 
 			// Ask for quantities and load the table on page load
